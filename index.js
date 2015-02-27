@@ -46,6 +46,7 @@ function requireWithStubs(name, callback, errback){
             }
         });
     })).then(function (stubs){
+        stubbed = stubs; //adds normalized names
         stubs.forEach(function (stub) {
             var normalizedName = stub.normalizedName;
             preserveDefinition(normalizedName);
@@ -67,6 +68,7 @@ function requireWithStubs(name, callback, errback){
                 System.amdRequire([name], function (mod) {
                     stubbed.push({
                         name: name,
+                        normalizedName: normalizedName,
                         implementation: mod
                     })
                     callback(mod); // Return the required module.
