@@ -1,0 +1,11 @@
+{
+  "name": "sisyphos",
+  "version": "0.0.0",
+  "description": "Port of bogus to system.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Antonio D'Ettole",
+  "license": "ISC"
+}

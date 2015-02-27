@@ -1,0 +1,17 @@
+{
+  "name": "sisyphos",
+  "main": "index.js",
+  "version": "0.0.0",
+  "authors": [
+    "Antonio D'Ettole <antonio@brandwatch.com>"
+  ],
+  "license": "MIT",
+  "private": false,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
