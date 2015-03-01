@@ -1,19 +1,15 @@
-'use strict';
 
+/* global System */
 var stubbed = [],
+    caches = {}, //this could be a WeakMap
     originals = {};
 
 function preserveDefinition(name){
-    var isDefined = System._loader.modules.hasOwnProperty(name); //check: why not System.defined[name]? bug?
+    var isDefined = System.has(name);
     var isStubbed = originals.hasOwnProperty(name);
 
     if (isDefined && !isStubbed){
-        // this seems to be causing a weird problem
-        // originals[name] = System.import(name); //not sure - might have to assign fulfillment value with then()
-
-        var themod = System._loader.modules[name].module.default;
-        originals[name] = themod;
-        // originals[name] = Promise.resolve(themod);
+        originals[name] = System.get(name).default;
     }
 }
 
@@ -36,6 +32,27 @@ function stub(name, implementation) {
     });
 }
 
+function fetchDependency(name) {
+    var load = {
+        name: name,
+        metadata: {}
+    };
+
+    if (caches[name]) {
+        return Promise.resolve(caches[name]);
+    }
+
+    return System.locate(load)
+        .then(function(address) {
+            load.address = address;
+            return System.fetch(load);
+        }).then(function (source){
+            load.source = source;
+            caches[name] = load;
+            return load;
+        });
+}
+
 function requireWithStubs(name, callback, errback){
     Promise.all(stubbed.map(function(stub) {
         return System.normalize(stub.name).then(function(normalizedStubbedName){
@@ -43,7 +60,7 @@ function requireWithStubs(name, callback, errback){
                 normalizedName: normalizedStubbedName,
                 name: stub.name,
                 implementation: stub.implementation
-            }
+            };
         });
     })).then(function (stubs){
         stubbed = stubs; //adds normalized names
@@ -64,18 +81,17 @@ function requireWithStubs(name, callback, errback){
 
             undefine(normalizedName);
 
-            System.amdRequire(stubNames, function () {
-                System.amdRequire([name], function (mod) {
-                    stubbed.push({
-                        name: name,
-                        normalizedName: normalizedName,
-                        implementation: mod
-                    })
-                    callback(mod); // Return the required module.
-                });
-            }, errback);
-        });
-    })
+            Promise.all(stubNames.map(function(name){
+                return System.import(name);
+            })).then(function() {
+                return fetchDependency(normalizedName);
+            }).then(function(load) {
+                return System.define(load.name, load.source);
+            }).then(function(){
+                return System.get(normalizedName).default;
+            }).then(callback);
+        }).catch(errback);
+    });
 }
 
 function reset(callback){
@@ -100,7 +116,7 @@ function reset(callback){
     });
 
     Promise.all(originalsToRestore.map(function (normalizedName) {
-        return System.import(normalizedName)
+        return System.import(normalizedName);
     })).then(function (){
         stubbed = [];
         callback();
