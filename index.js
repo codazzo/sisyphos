@@ -125,6 +125,7 @@ function reset(callback){
 
 module.exports = {
     stub: stub,
+    require: requireWithStubs,
     requireWithStubs: requireWithStubs,
     reset: reset
 };
