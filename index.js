@@ -54,7 +54,7 @@ function fetchDependency(name) {
 }
 
 function requireWithStubs(name, callback, errback){
-    Promise.all(stubbed.map(function(stub) {
+    return Promise.all(stubbed.map(function(stub) {
         return System.normalize(stub.name).then(function(normalizedStubbedName){
             return {
                 normalizedName: normalizedStubbedName,
@@ -66,6 +66,7 @@ function requireWithStubs(name, callback, errback){
         stubbed = stubs; //adds normalized names
         stubs.forEach(function (stub) {
             var normalizedName = stub.normalizedName;
+
             preserveDefinition(normalizedName);
             undefine(normalizedName);
             System.amdDefine(normalizedName, [], function () {
@@ -73,15 +74,15 @@ function requireWithStubs(name, callback, errback){
             });
         });
     }).then(function () {
-        System.normalize(name).then(function (normalizedName) {
+        return System.normalize(name).then(function (normalizedName) {
             var stubNames = stubbed.map(function (stub){
                 return stub.name;
             });
-            preserveDefinition(normalizedName);
 
+            preserveDefinition(normalizedName);
             undefine(normalizedName);
 
-            Promise.all(stubNames.map(function(name){
+            return Promise.all(stubNames.map(function(name){
                 return System.import(name);
             })).then(function() {
                 return fetchDependency(normalizedName);
@@ -89,22 +90,22 @@ function requireWithStubs(name, callback, errback){
                 return System.define(load.name, load.source);
             }).then(function(){
                 return System.get(normalizedName).default;
-            }).then(callback);
-        }).catch(errback);
-    });
+            })
+        });
+    }).then(callback, errback);
 }
 
 function reset(callback){
     var originalsToRestore = [];
 
     if (stubbed.length === 0) {
-        callback();
-        return;
+        return Promise.resolve().then(callback);
     }
 
     stubbed.forEach(function(stub){
         var name = stub.name;
         var normalizedName = stub.normalizedName;
+
         undefine(normalizedName);
 
         if (originals[normalizedName]){
@@ -115,12 +116,11 @@ function reset(callback){
         }
     });
 
-    Promise.all(originalsToRestore.map(function (normalizedName) {
+    return Promise.all(originalsToRestore.map(function (normalizedName) {
         return System.import(normalizedName);
     })).then(function (){
         stubbed = [];
-        callback();
-    });
+    }).then(callback);
 }
 
 module.exports = {
