@@ -24,24 +24,50 @@ describe('sisyphos', function(){
         });
 
         it('can stub modules that have a single default export', function(){
-            sisyphos.stub('mocks/a.js', 'something');
+            sisyphos.stub('mocks/default_a.js', {
+                default: 'something'
+            });
 
             return sisyphos.require('mocks/c.js').then(function(c){
                 assert.equal(c.getA(), 'something');
             });
         });
 
-        it('should accept a map of stubs', function(){
+        it('can stub modules that have a multiple named exports', function(){
+            sisyphos.stub('mocks/foo_and_bar.js', {
+                foo: 'newfoo',
+                bar: 'newbar'
+            });
+
+            return sisyphos.require('mocks/d.js').then(function(c){
+                assert.equal(c.getFoo(), 'newfoo');
+                assert.equal(c.getBar(), 'newbar');
+            });
+        });
+
+        it('can stub modules with default exports and named exports at the same time', function() {
+            sisyphos.stub('mocks/default_a.js', {
+                default: 'something'
+            });
+
+            sisyphos.stub('mocks/foo_and_bar.js', {
+                foo: 'newfoo'
+            });
+
+            return sisyphos.require('mocks/d.js').then(function(c){
+                assert.equal(c.getFoo(), 'newfoo');
+                assert.equal(c.getA(), 'something');
+            });
+        });
+
+        it('should accept a map of stub names to their default exports', function(){
             sisyphos.stub({
-                'mocks/a.js': 'wow',
-                'mocks/b.js': {
-                    foo: 'newfoo',
-                    bar: 'newbar'
-                }
+                'mocks/default_a.js': 'wow',
+                'mocks/default_b.js': 'such stub'
             });
             return sisyphos.require('mocks/c.js').then(function(c){
                 assert.equal(c.getA(), 'wow');
-                assert.equal(c.getFoo(), 'newfoo');
+                assert.equal(c.getB(), 'such stub');
             });
         });
     });
@@ -61,15 +87,14 @@ describe('sisyphos', function(){
     describe('reset method', function(){
         describe('if the module was in the registry before being required', function() {
             beforeEach(function() {
-                return System.import('mocks/c.js').then(function(){
+                var name = 'mocks/c.js';
+
+                return System.import(name).then(function(){
                     sisyphos.stub({
-                        'mocks/a.js': 'wow',
-                        'mocks/b.js': {
-                            foo: 'newfoo',
-                            bar: 'newbar'
-                        }
+                        'mocks/default_a.js': 'wow',
+                        'mocks/default_b.js': 'such stub'
                     });
-                    return sisyphos.require('mocks/c.js');
+                    return sisyphos.require(name);
                 });
             });
 
@@ -78,28 +103,33 @@ describe('sisyphos', function(){
                     .then(System.import.bind(System, 'mocks/c.js'))
                     .then(function(c){
                         assert.equal(c.getA(), 'a');
-                        assert.equal(c.getFoo(), 'foo');
+                        assert.equal(c.getB(), 'b');
                     });
             });
         });
 
         describe('if the module was not in the registry before being required', function() {
             beforeEach(function() {
-                sisyphos.stub({
-                    'mocks/a.js': 'rewow',
-                    'mocks/b.js': {
-                        foo: 'refoo',
-                        bar: 'rebar'
-                    }
-                });
-                return sisyphos.require('mocks/d.js');
+                var name = 'mocks/d.js';
+
+                return System.normalize(name)
+                    .then(function(normalizedName) {
+                        System.delete(normalizedName);
+                    })
+                    .then(function() {
+                        sisyphos.stub('mocks/foo_and_bar.js', {
+                            foo: 'newfoo',
+                            bar: 'newbar'
+                        });
+                        return sisyphos.require(name);
+                    });
             });
 
             it('should return all original implementations to their names', function(){
                 return sisyphos.reset()
                     .then(System.import.bind(System, 'mocks/d.js'))
                     .then(function(d){
-                        assert.equal(d.getA(), 'a');
+                        assert.equal(d.getFoo(), 'foo');
                         assert.equal(d.getBar(), 'bar');
                     });
             });

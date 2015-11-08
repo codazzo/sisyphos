@@ -1,10 +1,10 @@
-import a from './a.js';
-import {foo} from './b.js';
+import a from './default_a.js';
+import b from './default_b.js';
 
 export function getA(){
     return a;
 }
 
-export function getFoo(){
-    return foo;
+export function getB(){
+    return b;
 }

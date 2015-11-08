@@ -37,7 +37,7 @@ function stubSingleModule(name, implementation) {
 }
 
 function stub(){
-    var stubOne  = typeof arguments[0] === 'string' && arguments[1] !== undefined,
+    var stubOne  = typeof arguments[0] === 'string' && isObject(arguments[1]),
         stubMany = isObject(arguments[0]),
         map = stubMany && arguments[0];
 
@@ -47,13 +47,15 @@ function stub(){
     }
 
     if (stubMany){
-        Object.keys(map).forEach(key => {
-            stubSingleModule(key, map[key]);
+        Object.keys(map).forEach(function(key) {
+            stubSingleModule(key, {
+                default: map[key]
+            });
         });
         return;
     }
 
-    throw new Error('stub method expects either an Object as a map of names and implementations, or a single name/implementation pair as arguments');
+    throw new Error('stub method expects either an Object as a map of names and default exports, or a single <name, exports> pair as arguments');
 }
 
 function fetchDependency(name) {
@@ -90,9 +92,7 @@ function redefineStubs(){
 
             return preserveDefinition(normalizedName).then(function(){
                 System.delete(normalizedName);
-                System.amdDefine(normalizedName, [], function () {
-                    return stub.implementation;
-                });
+                System.set(normalizedName, System.newModule(stub.implementation));
             });
         })
     );
