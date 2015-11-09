@@ -12,7 +12,7 @@
     "test": "mocha-phantomjs test.html"
   },
   "author": "Antonio D'Ettole",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "babel-core": "^5.8.33",
     "babel-preset-es2015": "^6.0.14",
