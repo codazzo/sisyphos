@@ -118,17 +118,16 @@ function redefineRequiredModule(normalizedName) {
         });
 }
 
-function requireWithStubs(name, callback, errback){
+function requireWithStubs(name){
     return Promise.all(stubbed.map(addNormalizedName))
         .then(redefineStubs)
         .then(function () {
             return System.normalize(name);
         })
         .then(redefineRequiredModule)
-        .then(callback, errback);
 }
 
-function reset(callback){
+function reset(){
     var restoreStubsPromise = stubbed.reduce(function(promise, stub){
         var normalizedName = stub.normalizedName;
         var original = originals[normalizedName];
@@ -151,8 +150,7 @@ function reset(callback){
     return restoreStubsPromise
         .then(function() {
             stubbed = [];
-        })
-        .then(callback);
+        });
 }
 
 export default {stub, requireWithStubs, require, reset};

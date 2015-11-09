@@ -1,7 +1,7 @@
 {
   "name": "sisyphos",
   "version": "0.0.0",
-  "description": "Port of bogus to system.js",
+  "description": "A utility to stub System.js dependencies",
   "main": "index.js",
   "repository": {
     "type": "git",
