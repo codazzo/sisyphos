@@ -10,40 +10,37 @@ npm install --save-dev sisyphos
 
 ## Usage
 
-Requiring a module with stubbed dependencies happens in two phases:
+Requiring a module with stubbed dependencies happens in three phases:
 
 1. Declare what dependencies will be stubbed with what
 2. Import and use the module using the stubs
+3. Reset the stubs when you're done
 
-Modules can have one default export or one (or more) named exports. Accordingly, there are two ways to stub dependencies:
-
-### Default exports
+### 1. Stubbing dependencies
+In the example below, `depA` and `depB` have a single export. This is the case for all AMD and CommonJS modules, and for ES2015 modules which use `export default`. Dependencies with multiple named exports are stubbed by providing a value for each export.
 
 ```js
 sisyphos.stub({
-    'path/to/depA': fakeA, //depA's default export
-    'path/to/depB': fakeB  //depB's default export
+    'path/to/depA': 'some value',
+    'path/to/depB': {
+        someProperty: 'someValue'
+    },
+    'path/to/depWithMultipleNamedExports': {
+        exportA: 'valueA',
+        exportB: 'valueB'
+    }
 });
+```
 
+### 2. Importing the module with stubs
+
+```js
 sisyphos.require('module/that/uses/deps').then(function(mod) {
     // mod uses the stubbed dependencies
 });
 ```
 
-### Named exports
-
-```js
-sisyphos.stub('path/to/depWithMultipleExports', {
-    exportA: fakeA,
-    exportB: fakeB
-});
-
-sisyphos.require('module/that/uses/depWithMultipleExports').then(function(mod) {
-    // mod uses the stubbed dependencies
-});
-```
-
-### Resetting the stubs
+### 3. Resetting the stubs
 
 Once you are done you can reset the dependencies to their original implementations (whether they were in the registry at the time they were stubbed or not).
 
@@ -51,7 +48,7 @@ Once you are done you can reset the dependencies to their original implementatio
 sisyphos.reset(); //returns a promise
 ```
 
-### Writing unit tests
+## Writing unit tests
 
 Sisyphos's promise-based API makes for easy setup and tear-down in unit tests. If you're using [Mocha](https://mochajs.org):
 ```js
@@ -80,7 +77,7 @@ afterEach(function(done) {
 
 Have a look at the [tests file](tests.html) to see how sisyphos can be used with Mocha.
 
-## Running the unit tests
+## Contributing
 If you want to run the sisyphos tests suite, clone it locally and run:
 
 ```bash

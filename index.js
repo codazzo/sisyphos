@@ -18,6 +18,7 @@ function preserveIfDefined(normalizedName){
 function preserveDefinition(normalizedName){
     return System.import(normalizedName).then(function(originalModule){
         originals[normalizedName] = originalModule;
+        return originalModule;
     });
 }
 
@@ -37,9 +38,9 @@ function stubSingleModule(name, implementation) {
 }
 
 function stub(){
-    var stubOne  = typeof arguments[0] === 'string' && isObject(arguments[1]),
+    var stubOne  = typeof arguments[0] === 'string' && !!arguments[1],
         stubMany = isObject(arguments[0]),
-        map = stubMany && arguments[0];
+        map;
 
     if (stubOne){
         stubSingleModule(arguments[0], arguments[1]);
@@ -47,10 +48,9 @@ function stub(){
     }
 
     if (stubMany){
+        map = arguments[0];
         Object.keys(map).forEach(function(key) {
-            stubSingleModule(key, {
-                default: map[key]
-            });
+            stubSingleModule(key, map[key]);
         });
         return;
     }
@@ -90,9 +90,15 @@ function redefineStubs(){
         stubbed.map(function (stub) {
             var normalizedName = stub.normalizedName;
 
-            return preserveDefinition(normalizedName).then(function(){
+            return preserveDefinition(normalizedName).then(function(originalModule){
+                var exportKeys = Object.keys(originalModule);
+                var hasOnlyDefaultExport = exportKeys.length === 1 && exportKeys[0] === 'default';
+                var newModule = System.newModule(hasOnlyDefaultExport ? {
+                    default: stub.implementation
+                } : stub.implementation);
+
                 System.delete(normalizedName);
-                System.set(normalizedName, System.newModule(stub.implementation));
+                System.set(normalizedName, newModule);
             });
         })
     );

@@ -24,16 +24,14 @@ describe('sisyphos', function(){
         });
 
         it('can stub modules that have a single default export', function(){
-            sisyphos.stub('mocks/default_a.js', {
-                default: 'something'
-            });
+            sisyphos.stub('mocks/default_a.js', 'something');
 
             return sisyphos.require('mocks/c.js').then(function(c){
                 assert.equal(c.getA(), 'something');
             });
         });
 
-        it('can stub modules that have a multiple named exports', function(){
+        it('can stub modules that have multiple named exports', function(){
             sisyphos.stub('mocks/foo_and_bar.js', {
                 foo: 'newfoo',
                 bar: 'newbar'
@@ -46,9 +44,7 @@ describe('sisyphos', function(){
         });
 
         it('can stub modules with default exports and named exports at the same time', function() {
-            sisyphos.stub('mocks/default_a.js', {
-                default: 'something'
-            });
+            sisyphos.stub('mocks/default_a.js', 'something');
 
             sisyphos.stub('mocks/foo_and_bar.js', {
                 foo: 'newfoo'
