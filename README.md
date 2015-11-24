@@ -1,5 +1,7 @@
 # sisyphos
 
+[![Build Status](https://travis-ci.org/codazzo/sisyphos.svg?branch=master)](https://travis-ci.org/codazzo/sisyphos)
+
 A utility to stub modules imported with the [System.js](https://github.com/systemjs/systemjs) module loader.
 
 ## Installation
