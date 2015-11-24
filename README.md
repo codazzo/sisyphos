@@ -85,6 +85,10 @@ npm install
 npm test
 ```
 
+## License
+
+[MIT](LICENSE)
+
 ### Acknowledgements
 
 Special thanks to [@mroderick](https://github.com/mroderick) for creating [bogus](https://github.com/mroderick/bogus), a utility to stub dependencies in Require.js projects.
