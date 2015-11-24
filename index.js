@@ -1,35 +1,61 @@
-
 /* global System */
+
 var stubbed = [],
+    require = requireWithStubs,
     caches = {}, //this could be a WeakMap
     originals = {};
 
-function preserveDefinition(name){
-    var isDefined = System.has(name);
-    var isStubbed = originals.hasOwnProperty(name);
-
-    if (isDefined && !isStubbed){
-        originals[name] = System.get(name).default;
-    }
+function isObject(value){
+    return Object.prototype.toString.call(value) === '[object Object]';
 }
 
-function undefine(name) {
-    delete System.defined[name]; //shouldn't be necessary: bug in System.js ?
-    System.delete(name);
+function preserveIfDefined(normalizedName){
+    var isDefined = System.has(normalizedName);
+
+    return isDefined ? preserveDefinition(normalizedName) : Promise.resolve();
 }
 
-function stub(name, implementation) {
-    if (stubbed.indexOf(name) !== -1){
+function preserveDefinition(normalizedName){
+    return System.import(normalizedName).then(function(originalModule){
+        originals[normalizedName] = originalModule;
+        return originalModule;
+    });
+}
+
+function stubSingleModule(name, implementation) {
+    var isAlreadyStubbed = stubbed.filter(function(def){
+        return def.name === name;
+    }).length > 0;
+
+    if (isAlreadyStubbed) {
         throw new Error('Cannot stub module "' + name + '" twice');
     }
 
-    // we need to resolve the name in order to stub the dependency and that's an
-    // asynchronous operation: postpone it to requireWithStubs()
-    // as stub() is a synchronous method
     stubbed.push({
         name: name,
         implementation: implementation
     });
+}
+
+function stub(){
+    var stubOne  = typeof arguments[0] === 'string' && !!arguments[1],
+        stubMany = isObject(arguments[0]),
+        map;
+
+    if (stubOne){
+        stubSingleModule(arguments[0], arguments[1]);
+        return;
+    }
+
+    if (stubMany){
+        map = arguments[0];
+        Object.keys(map).forEach(function(key) {
+            stubSingleModule(key, map[key]);
+        });
+        return;
+    }
+
+    throw new Error('stub method expects either an Object as a map of names and default exports, or a single <name, exports> pair as arguments');
 }
 
 function fetchDependency(name) {
@@ -53,79 +79,84 @@ function fetchDependency(name) {
         });
 }
 
-function requireWithStubs(name, callback, errback){
-    return Promise.all(stubbed.map(function(stub) {
-        return System.normalize(stub.name).then(function(normalizedStubbedName){
-            return {
-                normalizedName: normalizedStubbedName,
-                name: stub.name,
-                implementation: stub.implementation
-            };
-        });
-    })).then(function (stubs){
-        stubbed = stubs; //adds normalized names
-        stubs.forEach(function (stub) {
+function addNormalizedName(stub, i) {
+    return System.normalize(stub.name).then(function(normalizedName){
+        stubbed[i].normalizedName = normalizedName;
+    });
+}
+
+function redefineStubs(){
+    return Promise.all(
+        stubbed.map(function (stub) {
             var normalizedName = stub.normalizedName;
 
-            preserveDefinition(normalizedName);
-            undefine(normalizedName);
-            System.amdDefine(normalizedName, [], function () {
-                return stub.implementation;
-            });
-        });
-    }).then(function () {
-        return System.normalize(name).then(function (normalizedName) {
-            var stubNames = stubbed.map(function (stub){
-                return stub.name;
-            });
+            return preserveDefinition(normalizedName).then(function(originalModule){
+                var exportKeys = Object.keys(originalModule);
+                var hasOnlyDefaultExport = exportKeys.length === 1 && exportKeys[0] === 'default';
+                var newModule = System.newModule(hasOnlyDefaultExport ? {
+                    default: stub.implementation
+                } : stub.implementation);
 
-            preserveDefinition(normalizedName);
-            undefine(normalizedName);
-
-            return Promise.all(stubNames.map(function(name){
-                return System.import(name);
-            })).then(function() {
-                return fetchDependency(normalizedName);
-            }).then(function(load) {
-                return System.define(load.name, load.source);
-            }).then(function(){
-                return System.get(normalizedName).default;
-            })
-        });
-    }).then(callback, errback);
+                System.delete(normalizedName);
+                System.set(normalizedName, newModule);
+            });
+        })
+    );
 }
 
-function reset(callback){
-    var originalsToRestore = [];
+function redefineRequiredModule(normalizedName) {
+    return preserveIfDefined(normalizedName)
+        .then(function() {
+            System.delete(normalizedName)
+            return fetchDependency(normalizedName);
+        })
+        .then(function(load) {
+            originals[normalizedName] = {
+                source: load.source
+            };
+            return System.define(load.name, load.source);
+        })
+        .then(function(){
+            stubbed.push({
+                normalizedName: normalizedName
+            });
+            return System.get(normalizedName);
+        });
+}
 
-    if (stubbed.length === 0) {
-        return Promise.resolve().then(callback);
-    }
+function requireWithStubs(name){
+    return Promise.all(stubbed.map(addNormalizedName))
+        .then(redefineStubs)
+        .then(function () {
+            return System.normalize(name);
+        })
+        .then(redefineRequiredModule)
+}
 
-    stubbed.forEach(function(stub){
-        var name = stub.name;
+function reset(){
+    var restoreStubsPromise = stubbed.reduce(function(promise, stub){
         var normalizedName = stub.normalizedName;
+        var original = originals[normalizedName];
 
-        undefine(normalizedName);
-
-        if (originals[normalizedName]){
-            System.amdDefine(normalizedName, [], function(){
-                return originals[normalizedName];
-            });
-            originalsToRestore.push(normalizedName);
+        if (!original) {
+            return promise;
         }
-    });
 
-    return Promise.all(originalsToRestore.map(function (normalizedName) {
-        return System.import(normalizedName);
-    })).then(function (){
-        stubbed = [];
-    }).then(callback);
+        System.delete(normalizedName);
+
+        return promise.then(function(){
+            if (original.source) {
+                return System.define(normalizedName, original.source);
+            } else {
+                System.set(normalizedName, originals[normalizedName]);
+            }
+        });
+    }, Promise.resolve());
+
+    return restoreStubsPromise
+        .then(function() {
+            stubbed = [];
+        });
 }
 
-module.exports = {
-    stub: stub,
-    require: requireWithStubs,
-    requireWithStubs: requireWithStubs,
-    reset: reset
-};
+export default {stub, requireWithStubs, require, reset};

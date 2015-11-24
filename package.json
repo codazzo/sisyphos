@@ -1,11 +1,29 @@
 {
   "name": "sisyphos",
   "version": "0.0.0",
-  "description": "Port of bogus to system.js",
+  "description": "A utility to stub System.js dependencies",
+  "keywords": ["systemjs", "system.js", "jspm", "stub", "mock"],
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codazzo/sisyphos.git"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha-phantomjs test.html"
   },
   "author": "Antonio D'Ettole",
-  "license": "ISC"
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^5.8.33",
+    "babel-preset-es2015": "^6.0.14",
+    "chai": "^3.4.0",
+    "es6-module-loader": "^0.17.8",
+    "eslint": "^1.8.0",
+    "eslint-config-defaults": "^7.1.1",
+    "mocha": "^2.3.3",
+    "mocha-phantomjs": "^4.0.1",
+    "phantomjs": "^1.9.18",
+    "sinon": "^1.17.2",
+    "systemjs": "^0.19.5"
+  }
 }

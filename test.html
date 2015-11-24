@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Test runner</title>
+    <link rel="stylesheet" type="text/css" href="node_modules/mocha/mocha.css">
+
+    <script type="text/javascript" src="node_modules/chai/chai.js"></script>
+    <script type="text/javascript" src="node_modules/mocha/mocha.js"></script>
+    <script type="text/javascript" src="node_modules/es6-module-loader/dist/es6-module-loader-dev.js"></script>
+    <script type="text/javascript" src="node_modules/babel-core/browser.js"></script>
+    <script type="text/javascript" src="node_modules/sinon/pkg/sinon.js"></script>
+    <script type="text/javascript" src="node_modules/systemjs/dist/system.src.js" ></script>
+    <script type="text/javascript" src="system.conf.js" ></script>
+    <script type="text/javascript">
+        mocha.setup('bdd');
+        System.import('test.js').then(function(){
+            mocha.run();
+        });
+    </script>
+</head>
+<body>
+    <div id="mocha"></div>
+</body>
+</html>
