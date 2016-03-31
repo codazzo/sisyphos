@@ -1,6 +1,6 @@
 {
   "name": "sisyphos",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Port of bogus to system.js",
   "main": "index.js",
   "scripts": {
