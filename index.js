@@ -159,4 +159,9 @@ function reset(){
         });
 }
 
-export default {stub, requireWithStubs, require, reset};
+module.exports = {
+    stub: stub,
+    requireWithStubs: requireWithStubs,
+    require: require,
+    reset: reset
+};
