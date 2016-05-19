@@ -66,6 +66,29 @@ describe('sisyphos', function(){
                 assert.equal(c.getB(), 'such stub');
             });
         });
+
+        it('can stub modules that export functions', function () {
+            var someFunc = function(){};
+
+            someFunc.a = 'newA';
+            someFunc.b = 'newB';
+
+            sisyphos.stub({
+                'mocks/common_js_function_with_properties.js': someFunc
+            });
+
+            return sisyphos.require('mocks/imports_common_js_function_with_properties.js')
+                .then(function (module) {
+                    assert.strictEqual(module.default, someFunc);
+                    return System.normalize('mocks/imports_common_js_function_with_properties.js');
+                })
+                .then(function (normalizedName) {
+                    var module = System.get(normalizedName);
+
+                    assert.equal(module.exportedA, 'newA');
+                    assert.equal(module.exportedB, 'newB');
+                });
+        });
     });
 
     describe('requireWithStubs method', function(){

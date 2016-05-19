@@ -17,8 +17,8 @@ function preserveIfDefined(normalizedName){
 
 function preserveDefinition(normalizedName){
     return System.import(normalizedName).then(function(originalModule){
-        originals[normalizedName] = originalModule;
-        return originalModule;
+        originals[normalizedName] = System.get(normalizedName);
+        return originals[normalizedName];
     });
 }
 
@@ -85,20 +85,39 @@ function addNormalizedName(stub, i) {
     });
 }
 
+function getReplacementModule(originalModule, stub) {
+    var implementation = stub.implementation;
+    var moduleDef;
+
+    switch (typeof implementation) {
+        case 'object':
+            moduleDef = implementation;
+            break;
+        case 'function':
+            moduleDef = Object.keys(implementation).reduce(function (acc, key) {
+                acc[key] = implementation[key];
+                return acc;
+            }, {
+                default: implementation
+            });
+            break;
+        default:
+            moduleDef = {
+                default: implementation
+            };
+    }
+
+    return System.newModule(moduleDef);
+}
+
 function redefineStubs(){
     return Promise.all(
         stubbed.map(function (stub) {
             var normalizedName = stub.normalizedName;
 
             return preserveDefinition(normalizedName).then(function(originalModule){
-                var exportKeys = Object.keys(originalModule);
-                var hasOnlyDefaultExport = exportKeys.length === 1 && exportKeys[0] === 'default';
-                var newModule = System.newModule(hasOnlyDefaultExport ? {
-                    default: stub.implementation
-                } : stub.implementation);
-
                 System.delete(normalizedName);
-                System.set(normalizedName, newModule);
+                System.set(normalizedName, getReplacementModule(originalModule, stub));
             });
         })
     );
@@ -159,4 +178,9 @@ function reset(){
         });
 }
 
-export default {stub, requireWithStubs, require, reset};
+module.exports = {
+    stub: stub,
+    requireWithStubs: requireWithStubs,
+    require: require,
+    reset: reset
+};
